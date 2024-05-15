@@ -1,10 +1,13 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5.3)
 project(path_optimizer)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_definitions(-std=c++11 -w)
 set(CMAKE_CXX_FLAGS " -Wall -Wextra ${CMAKE_CXX_FLAGS}")
-set(CMAKE_BUILD_TYPE "Release")
+# set(CMAKE_BUILD_TYPE "Release")
+SET(CMAKE_BUILD_TYPE "Debug")
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
 set(catkin_deps
         roscpp
@@ -21,11 +24,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 message(STATUS "CMAKE SOURCE DIR:" ${CMAKE_MODULE_PATH})
 
+
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}:/home/liujiangtao/osqp_ws/third_party")
+
+include(${CMAKE_SOURCE_DIR}/cmake/FindIPOPT.cmake)
+# include(${CMAKE_SOURCE_DIR}/cmake/FindOsqpEigen.cmake)
+
 find_package(IPOPT REQUIRED)
 find_package(benchmark REQUIRED)
 find_package(OsqpEigen REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 find_package(gflags REQUIRED)
 
 catkin_package(
@@ -35,11 +44,16 @@ catkin_package(
         DEPENDS OpenCV
 )
 
+message(WARNING ${IPOPT_INCLUDE_DIRS})
+message(WARNING ${IPOPT_LIBRARIES})
+
 include_directories(
         include
         ${OpenCV_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
+        ${IPOPT_INCLUDE_DIRS}
+        ${OsqpEigen_INCLUDE_DIR}
 )
 
 add_library(${PROJECT_NAME}
@@ -61,7 +75,8 @@ add_library(${PROJECT_NAME}
         src/config/planning_flags.cpp
         include/path_optimizer/config/planning_flags.hpp
         src/reference_path_smoother/angle_diff_smoother.cpp src/reference_path_smoother/tension_smoother.cpp src/reference_path_smoother/tension_smoother_2.cpp)
-target_link_libraries(${PROJECT_NAME} glog gflags ${IPOPT_LIBRARIES} ${catkin_LIBRARIES} OsqpEigen::OsqpEigen osqp::osqp
+target_link_libraries(${PROJECT_NAME} glog gflags ${IPOPT_LIBRARIES} ${catkin_LIBRARIES} 
+        # OsqpEigen::OsqpEigen osqp::osqp
         )
 
 add_executable(${PROJECT_NAME}_benchmark

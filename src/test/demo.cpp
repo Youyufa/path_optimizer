@@ -46,7 +46,8 @@ void referenceCb(const geometry_msgs::PointStampedConstPtr &p) {
     reference_path.emplace_back(reference_point);
     start_state_rcv = end_state_rcv = false;
     reference_rcv = reference_path.size() >= 6;
-    std::cout << "received a reference point" << std::endl;
+    std::cout << "reference_path.size() " << reference_path.size() << std::endl;
+    std::cout << "received a reference point " << reference_rcv << std::endl;
 }
 
 void startCb(const geometry_msgs::PoseWithCovarianceStampedConstPtr &start) {
@@ -56,7 +57,7 @@ void startCb(const geometry_msgs::PoseWithCovarianceStampedConstPtr &start) {
     if (reference_rcv) {
         start_state_rcv = true;
     }
-    std::cout << "get initial state." << std::endl;
+    LOG(INFO) << "get initial state." << std::endl;
 }
 
 void goalCb(const geometry_msgs::PoseStampedConstPtr &goal) {
@@ -66,7 +67,7 @@ void goalCb(const geometry_msgs::PoseStampedConstPtr &goal) {
     if (reference_rcv) {
         end_state_rcv = true;
     }
-    std::cout << "get the goal." << std::endl;
+    LOG(INFO) << "get the goal." << std::endl;
 }
 
 int main(int argc, char **argv) {
@@ -74,6 +75,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh("~");
 
     std::string base_dir = ros::package::getPath("path_optimizer");
+    std::cout << "base_dir" << base_dir << std::endl;
     auto log_dir = base_dir + "/log";
     if (0 != access(log_dir.c_str(), 0)) {
         // if this folder not exist, create a new one.
@@ -81,7 +83,10 @@ int main(int argc, char **argv) {
     }
 
     google::InitGoogleLogging(argv[0]);
-    FLAGS_colorlogtostderr=true;
+    google::SetStderrLogging(true);
+    google::InstallFailureSignalHandler();
+    FLAGS_alsologtostderr = true;
+	FLAGS_colorlogtostderr = true;
     FLAGS_stderrthreshold = google::INFO;
     FLAGS_log_dir = log_dir;
     FLAGS_logbufsecs = 0;
@@ -108,8 +113,9 @@ int main(int argc, char **argv) {
     cv::distanceTransform(eigen2cv(binary), eigen2cv(grid_map.get("distance")),
                           CV_DIST_L2, CV_DIST_MASK_PRECISE);
     grid_map.get("distance") *= resolution;
-    grid_map.setFrameId("/map");
-//    cv::imwrite("/home/ljn/桌面/map1.png", eigen2cv(grid_map.get("obstacle")));
+    grid_map.setFrameId("map");
+
+   cv::imwrite("/home/liujiangtao/osqp_ws/map_re.png", eigen2cv(grid_map.get("obstacle")));
 
     // Set publishers.
     ros::Publisher map_publisher =
@@ -123,8 +129,8 @@ int main(int argc, char **argv) {
         nh.subscribe("/move_base_simple/goal", 1, goalCb);
 
     // Markers initialization.
-    ros_viz_tools::RosVizTools markers(nh, "markers");
-    std::string marker_frame_id = "/map";
+    ros_viz_tools::RosVizTools markers(nh, "/markers");
+    std::string marker_frame_id = "map";
 
     // Loop.
     ros::Rate rate(30.0);
@@ -188,6 +194,7 @@ int main(int argc, char **argv) {
         std::vector<PathOptimizationNS::State> result_path, smoothed_reference_path, result_path_by_boxes;
         std::vector<std::vector<double>> a_star_display(3);
         if (reference_rcv && start_state_rcv && end_state_rcv) {
+            reference_rcv = 0;
 //            FLAGS_enable_searching = true;
 //            FLAGS_expected_safety_margin = 1.8;
             FLAGS_optimization_method = "KP";
@@ -206,6 +213,7 @@ int main(int argc, char **argv) {
 //            FLAGS_constraint_end_heading = false;
 //            FLAGS_smoothing_method = "ANGLE_DIFF";
             PathOptimizationNS::PathOptimizer path_optimizer(start_state, end_state, grid_map);
+            // LOG(INFO) << "path_optimizer construct success!";
 //            FLAGS_enable_dynamic_segmentation = false;
 //            FLAGS_enable_raw_output = false;
 //            FLAGS_output_spacing = 0.3;
@@ -236,25 +244,25 @@ int main(int argc, char **argv) {
 //        markers.append(a_star_marker);
 
         // Visualize abnormal bounds.
-        visualization_msgs::Marker abnormal_bounds_marker =
-            markers.newSphereList(0.1, "abnormal bounds", id++, ros_viz_tools::MAGENTA, marker_frame_id);
-        for (size_t i = 0; i != abnormal_bounds.size(); ++i) {
-            auto &ele = abnormal_bounds[i];
-            geometry_msgs::Point state, left_bound, rignt_bound;
-            state.x = std::get<0>(ele).x;
-            state.y = std::get<0>(ele).y;
-            abnormal_bounds_marker.points.push_back(state);
-            abnormal_bounds_marker.colors.push_back(ros_viz_tools::MAGENTA);
-            left_bound.x = state.x + std::get<1>(ele) * cos(std::get<0>(ele).z + M_PI_2);
-            left_bound.y = state.y + std::get<1>(ele) * sin(std::get<0>(ele).z + M_PI_2);
-            rignt_bound.x = state.x + std::get<2>(ele) * cos(std::get<0>(ele).z + M_PI_2);
-            rignt_bound.y = state.y + std::get<2>(ele) * sin(std::get<0>(ele).z + M_PI_2);
-            abnormal_bounds_marker.points.push_back(left_bound);
-            abnormal_bounds_marker.colors.push_back(ros_viz_tools::PURPLE);
-            abnormal_bounds_marker.points.push_back(rignt_bound);
-            abnormal_bounds_marker.colors.push_back(ros_viz_tools::PURPLE);
-        }
-        markers.append(abnormal_bounds_marker);
+        // visualization_msgs::Marker abnormal_bounds_marker =
+        //     markers.newSphereList(0.1, "abnormal bounds", id++, ros_viz_tools::MAGENTA, marker_frame_id);
+        // for (size_t i = 0; i != abnormal_bounds.size(); ++i) {
+        //     auto &ele = abnormal_bounds[i];
+        //     geometry_msgs::Point state, left_bound, rignt_bound;
+        //     state.x = std::get<0>(ele).x;
+        //     state.y = std::get<0>(ele).y;
+        //     abnormal_bounds_marker.points.push_back(state);
+        //     abnormal_bounds_marker.colors.push_back(ros_viz_tools::MAGENTA);
+        //     left_bound.x = state.x + std::get<1>(ele) * cos(std::get<0>(ele).z + M_PI_2);
+        //     left_bound.y = state.y + std::get<1>(ele) * sin(std::get<0>(ele).z + M_PI_2);
+        //     rignt_bound.x = state.x + std::get<2>(ele) * cos(std::get<0>(ele).z + M_PI_2);
+        //     rignt_bound.y = state.y + std::get<2>(ele) * sin(std::get<0>(ele).z + M_PI_2);
+        //     abnormal_bounds_marker.points.push_back(left_bound);
+        //     abnormal_bounds_marker.colors.push_back(ros_viz_tools::PURPLE);
+        //     abnormal_bounds_marker.points.push_back(rignt_bound);
+        //     abnormal_bounds_marker.colors.push_back(ros_viz_tools::PURPLE);
+        // }
+        // markers.append(abnormal_bounds_marker);
 
         // Visualize result path.
         visualization_msgs::Marker result_marker =
@@ -268,17 +276,17 @@ int main(int argc, char **argv) {
         }
         markers.append(result_marker);
 
-        // Visualize result path.
-        visualization_msgs::Marker result_boxes_marker =
-            markers.newLineStrip(0.15, "optimized path by boxes", id++, ros_viz_tools::BLACK, marker_frame_id);
-        for (size_t i = 0; i != result_path_by_boxes.size(); ++i) {
-            geometry_msgs::Point p;
-            p.x = result_path_by_boxes[i].x;
-            p.y = result_path_by_boxes[i].y;
-            p.z = 1.0;
-            result_boxes_marker.points.push_back(p);
-        }
-        markers.append(result_boxes_marker);
+        // // Visualize result path.
+        // visualization_msgs::Marker result_boxes_marker =
+        //     markers.newLineStrip(0.15, "optimized path by boxes", id++, ros_viz_tools::BLACK, marker_frame_id);
+        // for (size_t i = 0; i != result_path_by_boxes.size(); ++i) {
+        //     geometry_msgs::Point p;
+        //     p.x = result_path_by_boxes[i].x;
+        //     p.y = result_path_by_boxes[i].y;
+        //     p.z = 1.0;
+        //     result_boxes_marker.points.push_back(p);
+        // }
+        // markers.append(result_boxes_marker);
 
         // Visualize smoothed reference path.
         visualization_msgs::Marker smoothed_reference_marker =
@@ -353,7 +361,7 @@ int main(int argc, char **argv) {
 
         // Publish markers.
         markers.publish();
-        LOG_EVERY_N(INFO, 20) << "map published.";
+        // LOG_EVERY_N(INFO, 20) << "map published.";
 
         // Wait for next cycle.
         ros::spinOnce();

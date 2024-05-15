@@ -49,10 +49,12 @@ bool PathOptimizer::solve(const std::vector<State> &reference_points, std::vecto
     reference_path_->clear();
 
     // Smooth reference path.
+    
     auto reference_path_smoother = ReferencePathSmoother::create(FLAGS_smoothing_method,
                                                                  reference_points,
                                                                  vehicle_state_->getStartState(),
                                                                  *grid_map_);
+    // LOG(INFO) << "reference_path_smoother construct success!"; 
     bool smoothing_ok = reference_path_smoother->solve(reference_path_);
     if (!smoothing_ok) {
         LOG(ERROR) << "Path optimization FAILED!";

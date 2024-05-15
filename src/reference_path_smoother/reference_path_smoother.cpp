@@ -66,7 +66,7 @@ bool ReferencePathSmoother::segmentRawReference(std::vector<double> *x_list,
     while (s_list->back() < max_s) {
         s_list->emplace_back(s_list->back() + delta_s);
     }
-    if (max_s - s_list->back() > 1) {
+    if (max_s - s_list->back() > delta_s) {
         s_list->emplace_back(max_s);
     }
     auto point_num = s_list->size();

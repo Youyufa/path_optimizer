@@ -13,7 +13,7 @@
 #include "opencv2/core/eigen.hpp"
 #include "opencv2/opencv.hpp"
 #include <vector>
-#include <opencv/cv.hpp>
+// #include <opencv/cv.hpp>
 #include "glog/logging.h"
 #include <path_optimizer/path_optimizer.hpp>
 #include "path_optimizer/tools/eigen2cv.hpp"

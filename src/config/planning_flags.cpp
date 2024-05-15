@@ -2,6 +2,7 @@
 // Created by ljn on 20-4-12.
 //
 #include <gflags/gflags.h>
+#include <glog/logging.h>
 #include <cmath>
 #include "path_optimizer/config/planning_flags.hpp"
 
