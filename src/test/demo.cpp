@@ -129,9 +129,10 @@ int main(int argc, char **argv) {
         nh.subscribe("/move_base_simple/goal", 1, goalCb);
 
     // Markers initialization.
-    ros_viz_tools::RosVizTools markers(nh, "/markers");
+    ros_viz_tools::RosVizTools markers(nh, "markers");
     std::string marker_frame_id = "map";
 
+    std::vector<PathOptimizationNS::State> result_path, smoothed_reference_path, result_path_by_boxes;
     // Loop.
     ros::Rate rate(30.0);
     while (nh.ok()) {
@@ -191,7 +192,7 @@ int main(int argc, char **argv) {
         markers.append(end_marker);
 
         // Calculate.
-        std::vector<PathOptimizationNS::State> result_path, smoothed_reference_path, result_path_by_boxes;
+        // std::vector<PathOptimizationNS::State> result_path, smoothed_reference_path, result_path_by_boxes;
         std::vector<std::vector<double>> a_star_display(3);
         if (reference_rcv && start_state_rcv && end_state_rcv) {
             reference_rcv = 0;

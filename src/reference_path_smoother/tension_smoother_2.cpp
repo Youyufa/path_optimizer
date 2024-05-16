@@ -173,7 +173,7 @@ bool TensionSmoother2::osqpSmooth(const std::vector<double> &x_list,
     CHECK_EQ(angle_list.size(), s_list.size());
     auto point_num = x_list.size();
     OsqpEigen::Solver solver;
-    solver.settings()->setVerbosity(false);
+    solver.settings()->setVerbosity(true);
     solver.settings()->setWarmStart(true);
     solver.data()->setNumberOfVariables(4 * point_num - 1);
     solver.data()->setNumberOfConstraints(3 * (point_num - 1) + 2);
