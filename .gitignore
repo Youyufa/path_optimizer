@@ -80,3 +80,7 @@ heuristic_info.txt
 packages/
 
 /log
+
+*.INFO
+*.ERROR
+*.WARNING

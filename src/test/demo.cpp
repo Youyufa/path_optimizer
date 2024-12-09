@@ -31,6 +31,8 @@
 #include "path_optimizer/data_struct/reference_path.hpp"
 #include "path_optimizer/tools/spline.h"
 
+extern std::vector<double> x_list, y_list, s_list, angle_list, k_list;
+
 PathOptimizationNS::State start_state, end_state;
 std::vector<PathOptimizationNS::State> reference_path;
 std::vector<std::tuple<PathOptimizationNS::State, double, double>> abnormal_bounds;
@@ -98,6 +100,8 @@ int main(int argc, char **argv) {
     std::string image_file = "gridmap.png";
     image_dir.append("/" + image_file);
     cv::Mat img_src = cv::imread(image_dir, CV_8UC1);
+    cv::Rect roi(100, 300, 200, 300);
+    img_src = img_src(roi);
     double resolution = 0.2;  // in meter
     grid_map::GridMap grid_map(std::vector<std::string>{"obstacle", "distance"});
     grid_map::GridMapCvConverter::initializeFromImage(
@@ -134,6 +138,8 @@ int main(int argc, char **argv) {
 
     std::vector<PathOptimizationNS::State> result_path, smoothed_reference_path, result_path_by_boxes;
     // Loop.
+    int loop1 = 0;
+    int loop2 = 0;
     ros::Rate rate(30.0);
     while (nh.ok()) {
         ros::Time time = ros::Time::now();
@@ -199,7 +205,7 @@ int main(int argc, char **argv) {
 //            FLAGS_enable_searching = true;
 //            FLAGS_expected_safety_margin = 1.8;
             FLAGS_optimization_method = "KP";
-            FLAGS_enable_computation_time_output = false;
+            FLAGS_enable_computation_time_output = true;
             FLAGS_enable_raw_output = true; // Set this to false will make it much faster.
 //            FLAGS_expected_safety_margin = 1.8; // Expected, not mandatory.
             FLAGS_safety_margin = 0.0; // Mandatory safety margin.
@@ -218,9 +224,11 @@ int main(int argc, char **argv) {
 //            FLAGS_enable_dynamic_segmentation = false;
 //            FLAGS_enable_raw_output = false;
 //            FLAGS_output_spacing = 0.3;
+            // if (path_optimizer.solve(reference_path, &result_path)) {
             if (path_optimizer.solve(reference_path, &result_path)) {
                 std::cout << "ok!" << std::endl;
-                
+                LOG(INFO) << "refrence b-spline size: " << x_list.size();
+                LOG(INFO) << "smoothed refrence size: " << path_optimizer.getReferencePath().getLength() * 2;
                 smoothed_reference_path.clear();
                 const auto &reference = path_optimizer.getReferencePath();
                 double s = 0;
@@ -290,6 +298,20 @@ int main(int argc, char **argv) {
         // markers.append(result_boxes_marker);
 
         // Visualize smoothed reference path.
+        visualization_msgs::Marker reference_spline_marker =
+            markers.newLineStrip(0.07,
+                                 "reference spline path",
+                                 id++,
+                                 ros_viz_tools::RED,
+                                 marker_frame_id);
+        for (size_t i = 0; i != x_list.size(); ++i) {
+            geometry_msgs::Point p;
+            p.x = x_list[i];
+            p.y = y_list[i];
+            p.z = 1.0;
+            reference_spline_marker.points.push_back(p);
+        }
+        markers.append(reference_spline_marker);
         visualization_msgs::Marker smoothed_reference_marker =
             markers.newLineStrip(0.07,
                                  "smoothed reference path",
@@ -312,7 +334,13 @@ int main(int argc, char **argv) {
         static const double rtc{FLAGS_rear_axle_to_center};
         static const double rear_d{length / 2 - rtc};
         static const double front_d{length - rear_d};
-        for (size_t i = 0; i != result_path.size(); ++i) {
+        if(result_path.size()) {
+            loop1++;
+            loop2=loop1/3;
+            loop2%=result_path.size();
+        }
+        
+        for (size_t i = std::max(0, loop2-20); i != loop2; ++i) {
             double heading = result_path[i].z;
             PathOptimizationNS::State p1, p2, p3, p4;
             p1.x = front_d;
@@ -352,6 +380,30 @@ int main(int argc, char **argv) {
             vehicle_geometry_marker.points.push_back(pp1);
         }
         markers.append(vehicle_geometry_marker);
+
+        geometry_msgs::Pose refline_text_pose;
+        refline_text_pose.position.x = 25.0;
+        refline_text_pose.position.y = 9.0;
+        visualization_msgs::Marker refline_text =
+                markers.newText(1, refline_text_pose, "o control point",
+                                id++, ros_viz_tools::RED, marker_frame_id);
+        markers.append(refline_text);
+
+        geometry_msgs::Pose bspline_text_pose;
+        bspline_text_pose.position.x = 25.0;
+        bspline_text_pose.position.y = 8.0;
+        visualization_msgs::Marker bspline_text =
+                markers.newText(1, bspline_text_pose, "- b-spline",
+                                id++, ros_viz_tools::RED, marker_frame_id);
+        markers.append(bspline_text);
+
+        geometry_msgs::Pose smooth_ref_text_pose;
+        smooth_ref_text_pose.position.x = 25.0;
+        smooth_ref_text_pose.position.y = 7.0;
+        visualization_msgs::Marker smooth_ref_text =
+                markers.newText(1, smooth_ref_text_pose, "- smoothed refline",
+                                id++, ros_viz_tools::YELLOW, marker_frame_id);
+        markers.append(smooth_ref_text);
 
         // Publish the grid_map.
         grid_map.setTimestamp(time.toNSec());

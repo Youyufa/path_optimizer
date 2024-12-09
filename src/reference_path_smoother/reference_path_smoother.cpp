@@ -61,7 +61,8 @@ bool ReferencePathSmoother::segmentRawReference(std::vector<double> *x_list,
     x_spline.set_points(s_list_, x_list_);
     y_spline.set_points(s_list_, y_list_);
     // Divide the raw path.
-    double delta_s = 1.0;
+    // double delta_s = 1.0;
+    double delta_s = 0.5;
     s_list->emplace_back(0);
     while (s_list->back() < max_s) {
         s_list->emplace_back(s_list->back() + delta_s);

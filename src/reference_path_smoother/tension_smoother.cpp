@@ -10,7 +10,7 @@
 #include "path_optimizer/data_struct/reference_path.hpp"
 #include "path_optimizer/config/planning_flags.hpp"
 #include "path_optimizer/data_struct/data_struct.hpp"
-
+std::vector<double> x_list, y_list, s_list, angle_list, k_list;
 namespace PathOptimizationNS {
 
 void FgEvalReferenceSmoothing::operator()(PathOptimizationNS::FgEvalReferenceSmoothing::ADvector &fg,
@@ -50,7 +50,7 @@ TensionSmoother::TensionSmoother(const std::vector<PathOptimizationNS::State> &i
     ReferencePathSmoother(input_points, start_state, grid_map) {}
 
 bool TensionSmoother::smooth(PathOptimizationNS::ReferencePath *reference_path) {
-    std::vector<double> x_list, y_list, s_list, angle_list, k_list;
+    // std::vector<double> x_list, y_list, s_list, angle_list, k_list;
     if (!segmentRawReference(&x_list, &y_list, &s_list, &angle_list, &k_list)) return false;
     std::vector<double> result_x_list, result_y_list, result_s_list;
     bool solver_ok{false};

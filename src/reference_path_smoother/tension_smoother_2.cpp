@@ -215,18 +215,28 @@ bool TensionSmoother2::osqpSmooth(const std::vector<double> &x_list,
 }
 
 void TensionSmoother2::setHessianMatrix(size_t size, Eigen::SparseMatrix<double> *matrix_h) const {
-    const size_t x_start_index = 0;
-    const size_t y_start_index = x_start_index + size;
-    const size_t theta_start_index = y_start_index + size;
-    const size_t k_start_index = theta_start_index + size;
+    const size_t x_start_index = 0; // 0
+    const size_t y_start_index = x_start_index + size; // N
+    const size_t theta_start_index = y_start_index + size; // 2N
+    const size_t k_start_index = theta_start_index + size; // 3N
     const size_t matrix_size = 4 * size - 1;
     Eigen::MatrixXd hessian = Eigen::MatrixXd::Constant(matrix_size, matrix_size, 0);
     // Deviation and curvature.
     for (int i = 0; i != size; ++i) {
         hessian(x_start_index + i, x_start_index + i) = hessian(y_start_index + i, y_start_index + i)
             = FLAGS_tension_2_deviation_weight * 2;
-        if (i != size - 1) hessian(k_start_index + i, k_start_index + i) = FLAGS_tension_2_curvature_weight * 2;
+        if (i != size - 1) 
+            hessian(k_start_index + i, k_start_index + i) = FLAGS_tension_2_curvature_weight * 2;
     }
+    std::cout << "size: " << matrix_size << "\n";
+    std::cout << hessian;
+    // for (int i = 0; i < matrix_size; i++) {
+    //     for (int j = 0; j < matrix_size; j++) {
+    //         if (hessian(i, j)) {
+    //         std::cout << i << ", " << j << ", " << hessian(i, j) << "\n";
+    //         }
+    //     }
+    // }
     // Curvature change.
     Eigen::Vector2d coeff_vec{1, -1};
     Eigen::Matrix2d coeff = coeff_vec * coeff_vec.transpose();
@@ -246,12 +256,12 @@ void TensionSmoother2::setConstraintMatrix(const std::vector<double> &x_list,
                                            Eigen::VectorXd *upper_bound) const {
     const size_t size = x_list.size();
     const size_t x_start_index = 0;
-    const size_t y_start_index = x_start_index + size;
-    const size_t theta_start_index = y_start_index + size;
-    const size_t k_start_index = theta_start_index + size;
+    const size_t y_start_index = x_start_index + size;// N
+    const size_t theta_start_index = y_start_index + size;// 2N
+    const size_t k_start_index = theta_start_index + size;// 3N
     const size_t cons_x_update_start_index = 0;
-    const size_t cons_y_update_start_index = cons_x_update_start_index + size - 1;
-    const size_t cons_theta_update_start_index = cons_y_update_start_index + size - 1;
+    const size_t cons_y_update_start_index = cons_x_update_start_index + size - 1;// N-1
+    const size_t cons_theta_update_start_index = cons_y_update_start_index + size - 1;// 2N-2
     const size_t cons_x_index = cons_theta_update_start_index + size - 1;
     const size_t cons_y_index = cons_x_index + 1;
 
